@@ -1,73 +1,142 @@
+<?php
+session_start();
+include 'dbconnect.php';
+
+$error = '';
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+  $username = $_POST["username"];
+  $password = $_POST["password"];
+  $role = $_POST["role"];
+
+  $stmt = $conn->prepare("SELECT id, fullname, password FROM users WHERE username = ? AND role = ?");
+  $stmt->bind_param("ss", $username, $role);
+  $stmt->execute();
+  $result = $stmt->get_result();
+
+  if ($result->num_rows === 1) {
+    $user = $result->fetch_assoc();
+    if (password_verify($password, $user['password'])) {
+      $_SESSION["user_id"] = $user["id"];
+      $_SESSION["fullname"] = $user["fullname"];
+      $_SESSION["role"] = $role;
+      header("Location: dashboard.php"); // Replace with your dashboard
+      exit();
+    } else {
+      $error = "Invalid password.";
+    }
+  } else {
+    $error = "User not found or role mismatch.";
+  }
+
+  $stmt->close();
+  $conn->close();
+}
+?>
+
 <!DOCTYPE html>
 <html>
 <head>
-    <title>LOGIN IN</title>
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        h1 {
-            text-align: center;
-            font-family: Arial, sans-serif;
-            font-size: 2.5em;
-        }
-        section {
-            justify-content: center;
-            background-color: white;
-            padding: 32px;
-            border-radius: 16px;
-            width: 400px;
-            box-shadow: 0 0 16px rgba(1, 247, 255, 0.5);
-        }
-        label, input, button {
-            font-size: 1.2em;
-        }
-        button {
-            padding: 10px 24px;
-        }
-        .login-title {
-            color: #fff;
-            text-shadow: 0 0 10px #00fff7, 0 0 20px #00fff7, 0 0 40px #00fff7;
-        }
-        /* Increase the size of the textbox and its text */
-        input[type="text"] {
-        width: 300px;      /* Set desired width */
-        height: 40px;      /* Set desired height */
-        font-size: 18px;   /* Set font size for text inside */
-        padding: 8px;      /* Optional: add padding for better appearance */
-        }
-    </style>
+  <title>User Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #eef2f7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .login-container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 16px rgba(1, 247, 255, 0.5);
+      width: 400px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #007bff;
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: bold;
+      margin-top: 10px;
+      display: block;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="radio"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .radio-group {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+
+    .radio-group label {
+      font-weight: normal;
+      display: inline-block;
+      width: auto;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .error {
+      color: red;
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-    <h1 class="login-title">Login</h1>
-    <section>
-    <form>
-        <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required><br><br>
-        <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required><br><br>
-        <label for="admin">Admin:</label>
-            <input type="radio" id="admin" name="role" value="admin"><br><br>
-        <label for="nurse">Nurse:</label>
-            <input type="radio" id="nurse" name="role" value="nurse"><br><br>
-        <label for="socialworker">Social Worker:</label>
-            <input type="radio" id="socialworker" name="role" value="socialworker"><br><br>
-        <button type="button" style="background-color: rgb(1, 183, 255); color: rgb(5, 5, 5);" onclick="
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-            if (username && password) {
-                alert('Login successful');
-            } else {
-                alert('Fill in the credentials');
-            }
-        ">Login</button>    
+
+  <div class="login-container">
+    <h2>User Login</h2>
+    <form method="POST" action="login.php">
+      <label for="username">Username:</label>
+      <input type="text" name="username" id="username" required>
+
+      <label for="password">Password:</label>
+      <input type="password" name="password" id="password" required>
+
+      <label>Role:</label>
+      <div class="radio-group">
+        <label><input type="radio" name="role" value="Admin" required> Admin</label>
+        <label><input type="radio" name="role" value="Nurse"> Nurse</label>
+        <label><input type="radio" name="role" value="Doctor"> Social Worker</label>
+      </div>
+
+      <button type="submit">Login</button>
+      <?php if (!empty($error)) echo "<div class='error'>$error</div>"; ?>
     </form>
-    </section>
-   
+  </div>
+
 </body>
 </html>
